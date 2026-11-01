@@ -1,0 +1,175 @@
+openapi: 3.1.0
+info:
+  title: EWharf Merchant API
+  version: 1.0.0
+  description: >-
+    EWharf is a single-deployment, single-tenant gateway. This merchant
+    protocol uses one credential, order service, checkout, payment processor,
+    and Webhook outbox. Internal operations use /admin and are outside this
+    merchant API.
+servers:
+  - url: https://pay.example.com
+paths:
+  /payments/ewharf/v1/order/create-transaction:
+    post:
+      operationId: createEwharfTransaction
+      summary: Create a EWharf transaction
+      description: Accepts JSON or form data. Exclude signature and empty values, sort field names in ASCII order, join key=value pairs with &, and calculate lowercase HMAC-SHA256 using the API Secret as the HMAC key.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EwharfCreateRequest" }
+          application/x-www-form-urlencoded:
+            schema: { $ref: "#/components/schemas/EwharfCreateRequest" }
+      responses:
+        "200":
+          description: Transaction created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EwharfCreateResponse" }
+        "400": { $ref: "#/components/responses/GatewayError" }
+        "401": { $ref: "#/components/responses/GatewayError" }
+        "429": { $ref: "#/components/responses/GatewayError" }
+        "500": { $ref: "#/components/responses/GatewayError" }
+        "502": { $ref: "#/components/responses/GatewayError" }
+        "503": { $ref: "#/components/responses/GatewayError" }
+      callbacks:
+        orderNotification:
+          '{$request.body#/notify_url}':
+            post:
+              summary: EWharf order notification
+              description: The signature is lowercase HMAC-SHA256 over the sorted non-empty callback fields using the same API Secret as the HMAC key. Return plain text ok with HTTP 200.
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema: { $ref: "#/components/schemas/EwharfNotification" }
+              responses:
+                "200":
+                  description: Plain text ok acknowledgement
+                  content:
+                    text/plain:
+                      schema: { type: string, const: ok }
+  /payments/ewharf/v1/order/query:
+    get:
+      operationId: queryEwharfTransaction
+      summary: Query a EWharf transaction
+      description: Query by exactly one trade_id or order_id. Sign all non-empty query fields except signature using the same lowercase HMAC-SHA256 contract as order creation.
+      parameters:
+        - { name: pid, in: query, required: true, schema: { type: string } }
+        - { name: trade_id, in: query, required: false, schema: { type: string, maxLength: 128 } }
+        - { name: order_id, in: query, required: false, schema: { type: string, maxLength: 128 } }
+        - { name: signature, in: query, required: true, schema: { type: string, pattern: "^[0-9a-f]{64}$" } }
+      responses:
+        "200":
+          description: Transaction status and immutable payment snapshot
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EwharfCreateResponse" }
+        "400": { $ref: "#/components/responses/GatewayError" }
+        "401": { $ref: "#/components/responses/GatewayError" }
+        "404": { $ref: "#/components/responses/GatewayError" }
+        "429": { $ref: "#/components/responses/GatewayError" }
+        "500": { $ref: "#/components/responses/GatewayError" }
+components:
+  responses:
+    GatewayError:
+      description: Gateway error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/GatewayEnvelope" }
+  schemas:
+    OrderStatus:
+      type: string
+      enum: [pending, confirming, partially_paid, paid, overpaid, expired, cancelled, failed, refunded]
+    EwharfStatus:
+      type: integer
+      enum: [1, 2, 3, 4]
+      description: 1 waiting for payment, 2 paid, 3 closed, 4 waiting for payment-method selection.
+    EwharfCreateRequest:
+      type: object
+      required: [pid, order_id, amount, notify_url, signature]
+      properties:
+        pid: { type: string, description: API credential PID }
+        order_id: { type: string, minLength: 1, maxLength: 128 }
+        currency: { type: string, minLength: 3, maxLength: 3, description: ISO 4217 code. Optional; when omitted the deployment default currency (USD unless changed in Settings) is used. }
+        token: { type: string, pattern: "^[A-Za-z0-9_-]{2,20}$", description: Omit together with network to let checkout select a payment method. }
+        network: { type: string, pattern: "^[A-Za-z0-9-]{2,32}$", description: Omit together with token to let checkout select a payment method. }
+        amount:
+          oneOf:
+            - { type: string, pattern: "^(?!0(?:\\.0+)?$)(?:0|[1-9]\\d*)(?:\\.\\d{1,8})?$" }
+            - { type: number, exclusiveMinimum: 0 }
+        notify_url: { type: string, format: uri, pattern: "^https://" }
+        redirect_url: { type: string, format: uri, pattern: "^https://" }
+        name: { type: string, maxLength: 500 }
+        signature: { type: string, pattern: "^[0-9a-f]{64}$" }
+      example:
+        pid: "100000000001"
+        order_id: invoice-1001
+        currency: USD
+        amount: "12.50"
+        notify_url: https://merchant.example/notify
+        signature: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    EwharfCreateData:
+      type: object
+      required: [trade_id, order_id, amount, currency, actual_amount, receive_address, token, network, status, status_detail, expiration_time, payment_url]
+      properties:
+        trade_id: { type: string, pattern: "^[0-9]{20}$" }
+        order_id: { type: string }
+        amount: { type: string }
+        currency: { type: string }
+        actual_amount: { type: string }
+        receive_address: { type: string }
+        token: { type: string }
+        network: { type: string }
+        status: { $ref: "#/components/schemas/EwharfStatus" }
+        status_detail: { $ref: "#/components/schemas/OrderStatus" }
+        expiration_time: { type: integer }
+        payment_url: { type: string, format: uri }
+    EwharfCreateResponse:
+      allOf:
+        - { $ref: "#/components/schemas/GatewayEnvelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/EwharfCreateData" }
+    EwharfNotification:
+      type: object
+      required: [pid, trade_id, order_id, amount, actual_amount, receive_address, token, block_transaction_id, status, signature]
+      properties:
+        pid: { type: string }
+        trade_id: { type: string, pattern: "^[0-9]{20}$" }
+        order_id: { type: string }
+        amount: { type: string }
+        actual_amount: { type: string }
+        receive_address: { type: string }
+        token: { type: string }
+        block_transaction_id: { type: string }
+        status:
+          type: integer
+          enum: [1, 2, 3]
+        signature: { type: string, pattern: "^[0-9a-f]{64}$" }
+      example:
+        pid: "100000000001"
+        trade_id: "26071406211234567890"
+        order_id: invoice-1001
+        amount: "12.50"
+        actual_amount: "12.50"
+        receive_address: TExampleAddress
+        token: USDT
+        block_transaction_id: transaction-hash
+        status: 2
+        signature: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    GatewayEnvelope:
+      type: object
+      required: [status_code, message, data, request_id]
+      properties:
+        status_code: { type: integer }
+        message: { type: string }
+        data: {}
+        request_id: { type: string }
+      example:
+        status_code: 10009
+        message: invalid parameters
+        data: null
+        request_id: 73e3648b-b257-47e6-a510-12772cac0448

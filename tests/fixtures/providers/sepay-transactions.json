@@ -1,0 +1,31 @@
+{
+	"status": "success",
+	"data": [
+		{
+			"id": "6f1c2d3e-4a5b-4c6d-8e7f-0a1b2c3d4e5f",
+			"transaction_date": "2026-10-28T20:15:30+07:00",
+			"account_number": "0123456789",
+			"va": null,
+			"transfer_type": "in",
+			"amount_in": 350000,
+			"amount_out": 0,
+			"accumulated": 1250000,
+			"transaction_content": "EWABC123DEF456 thanh toan don hang",
+			"reference_number": "FT26301000001",
+			"code": "EWABC123DEF456",
+			"bank_brand_name": "Vietcombank",
+			"bank_account_id": "11111111-2222-4333-8444-555555555555",
+			"va_id": null,
+			"webhook_success": 1
+		}
+	],
+	"meta": {
+		"pagination": {
+			"total": 1,
+			"per_page": 100,
+			"current_page": 1,
+			"last_page": 1,
+			"has_more": false
+		}
+	}
+}

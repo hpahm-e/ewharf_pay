@@ -1,0 +1,13 @@
+services:
+  ewharf:
+    image: ghcr.io/ewharf/ewharf:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      EWHARF_DATA_DIR: /var/lib/ewharf
+    volumes:
+      - ewharf-data:/var/lib/ewharf
+
+volumes:
+  ewharf-data:
