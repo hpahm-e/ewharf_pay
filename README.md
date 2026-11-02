@@ -23,6 +23,28 @@ the protected `/admin` application.
 
 ## Core capabilities
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/01-login.gif" alt="Login" width="48%">
+  <img src="docs/screenshots/02-dashboard.png" alt="Dashboard" width="48%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/03-orders.png" alt="Orders" width="48%">
+  <img src="docs/screenshots/04-receiving-methods.png" alt="Receiving methods" width="48%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/05-pay-screen-crp.png" alt="Pay screen (crypto)" width="48%">
+  <img src="docs/screenshots/06-pay-screen-vnd.png" alt="Pay screen (VND)" width="48%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/07-payment-methods.png" alt="Payment methods" width="48%">
+  <img src="docs/screenshots/08-fiat-rates.png" alt="Fiat rates" width="48%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/09-error-page-example.gif" alt="Error page" width="48%">
+</p>
+
 - Receive payments through TRON, EVM networks, TON, Aptos, Solana, and Bitcoin.
 - Detect inbound payments through read-only Binance, OKX, and SePay (Vietnamese bank transfer) adapters.
 - Expose the signed EWharf merchant protocol with JSON and form input.
